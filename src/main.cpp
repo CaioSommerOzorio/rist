@@ -114,6 +114,25 @@ int main(int argc, char* argv[]) {
     riceData.save(riceDataPath);
   }
 
+  if (!strcmp(argv[1], "destroy")) {
+    if (argc != 3) {
+      cout << "Incorrect usage." << endl;
+      return 1;
+    }
+
+    bool found = false;
+    for (const auto &sectionPair: riceData) {
+      if (sectionPair.first == argv[2]) {
+        found = true;
+      }
+    }
+    if (!found) {
+      cout << argv[2] << " not an existing rice." << endl;
+      return 1;
+    }
+    fs::remove_all(riceData[argv[2]]["path"]);
+  }
+
   if (!strcmp(argv[1], "add")) {
     if (argc != 3) {
       cout << "Incorrect usage." << endl;
@@ -180,6 +199,8 @@ int main(int argc, char* argv[]) {
 
       riceData[loadedRice]["configs"] = configsParsed;
       riceData.save(riceDataPath);
+      fs::remove(originalPath);
+      fs::rename(riceFile, originalPath);
     }
   }
 
