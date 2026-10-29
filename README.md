@@ -1,6 +1,10 @@
 # Rist
 ## Introduction
 Rist is a command line tool built in C++ made to help linux users rice their setups.
+## DISCLAIMER
+This is a project in development. Although the project is fully functional, error checking is minimal, and may result in unexpected results.
+
+However, I am working to make this better.
 
 ## Installation
 For now, clone the repository:
