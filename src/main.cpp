@@ -219,6 +219,22 @@ int removeConfig(fs::path configFilePath) {
   for (int i = 0; i < configs.size(); i++) {
     if (configs.at(i) == relConfigPath) {
       configs.erase(configs.begin() + i);
+
+      string updateConfigs;
+      for (const auto& config: configs) {
+        if (!updatedConfigs.empty()) {
+          updatedConfigs += " ";
+        }
+        updatedConfigs += config;
+      }
+
+      if (!fs::is_symlink(configFilePath)) {
+        cout << "Path is not a symlink." << endl;
+        return 1;
+      }
+      fs::remove(configFilePath);
+      ristIni[loadedRice]["configs"] = updatedConfigs;
+      ristIni.save(ristIniPath);
       return 0;
     }
   }
