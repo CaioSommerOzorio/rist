@@ -11,7 +11,7 @@
 namespace fs = std::filesystem;
 using namespace std;
 
-fs::path remove_prefix(const fs::path& full_path, const fs::path& prefix) {
+fs::path removePathPrefix(const fs::path& full_path, const fs::path& prefix) {
   auto p_it = full_path.begin();
   auto pre_it = prefix.begin();
 
@@ -31,7 +31,11 @@ fs::path remove_prefix(const fs::path& full_path, const fs::path& prefix) {
   return full_path;
 }
 
-vector<string> parseString(string s, const string& delimiter) {
+vector<string> splitString(string s, const string& delimiter) {
+  if (s.empty() || delimiter.empty()) {
+    return {};
+  }
+
   vector<string>tokens;
   size_t pos = 0;
   string token;
@@ -45,10 +49,182 @@ vector<string> parseString(string s, const string& delimiter) {
   return tokens;
 }
 
-void initFile(fs::path path) {
-  ini::IniFile riceData;
-  riceData["meta"]["loaded"] = "none";
-  riceData.save(path);
+int createRice(string riceName) {
+  const char* homeDir = getenv("HOME");
+  fs::path dotConfig = fs::path(homeDir) / ".config";
+  fs::path ristConfigPath = fs::path(homeDir) / fs::path(".config/rist");
+  fs::path ricePath = dotConfig / fs::path("rist") / fs::path(riceName);
+  fs::path ristIniPath = ristConfigPath / "rist.ini";
+
+  ini::IniFile ristIni;
+  ristIni.load(ristIniPath);
+
+  for (const auto sectionPair: ristIni) {
+    const string &configRice = sectionPair.first;
+    if (riceName == configRice) {
+      cout << "ERROR: rice with name " << riceName << " already exists." << endl;
+      return 1;
+    }
+  }
+
+  fs::create_directory(ricePath);
+
+  ristIni["meta"]["loaded"] = riceName;
+  ristIni[riceName]["path"] = string(ricePath);
+
+  ristIni.save(ristIniPath);
+  return 0;
+}
+
+int addConfig(fs::path configFilePath) {
+  const char* homeDir = getenv("HOME");
+  fs::path dotConfig = fs::path(homeDir) / ".config";
+  fs::path ristConfigPath = fs::path(homeDir) / fs::path(".config/rist");
+  fs::path relConfigPath = removePathPrefix(configFilePath, dotConfig);
+
+  fs::path ristIniPath = ristConfigPath / "rist.ini";
+  ini::IniFile ristIni;
+  ristIni.load(ristIniPath);
+
+  string loadedRice = ristIni["meta"]["loaded"].as<string>();
+  fs::path ricePath = dotConfig / fs::path("rist") / fs::path(loadedRice);
+
+  if (loadedRice == "none") {
+    cout << "Create a rice and load it first";
+    return 1;
+  }
+
+  if (!ristIni[loadedRice]["configs"].as<string>().empty()) {
+    ristIni[loadedRice]["configs"] =  ristIni[loadedRice]["configs"].as<string>() + " ";
+  }
+  ristIni[loadedRice]["configs"] = ristIni[loadedRice]["configs"].as<string>() + string(relConfigPath);
+
+  fs::path configFilePathInRist = ricePath / relConfigPath;
+  fs::create_directories(configFilePathInRist.parent_path());
+
+  fs::rename(configFilePath, configFilePathInRist);
+  fs::create_symlink(configFilePathInRist, configFilePath);
+
+  ristIni.save(ristIniPath);
+
+  return 0;
+}
+
+int loadRice(string riceName) {
+  const char* homeDir = getenv("HOME");
+  fs::path dotConfig = fs::path(homeDir) / ".config";
+  fs::path ristConfigPath = fs::path(homeDir) / fs::path(".config/rist");
+  fs::path ricePath = dotConfig / fs::path("rist") / fs::path(riceName);
+
+  fs::path ristIniPath = ristConfigPath / "rist.ini";
+  ini::IniFile ristIni;
+  ristIni.load(ristIniPath);
+
+  bool found = false;
+  for (const auto &sectionPair: ristIni) {
+    if (sectionPair.first == riceName) {
+      found = true;
+    }
+  }
+  if (!found) {
+    cout << "no rice with name " << riceName << " was found" << endl;
+    return 1;
+  }
+
+  vector<string> configPaths = splitString(ristIni[riceName]["configs"].as<string>(), " ");
+  for (string p: configPaths) {
+    fs::path configFilePathInRist = ricePath / p;
+    fs::path configFilePath = dotConfig / p;
+
+    if (!fs::exists(configFilePathInRist)) {
+      cout << "Missing file in rice: " << configFilePathInRist << endl;
+      return 1;
+    }
+    if (fs::is_symlink(configFilePath)) {
+      fs::remove(configFilePath);
+    }
+    else if (fs::exists(configFilePath)) {
+      cout << "Refusing to replace non-symlink: " << configFilePath << endl;
+      return 1;
+    }
+
+    fs::create_symlink(configFilePathInRist, configFilePath);
+  }
+
+  ristIni["meta"]["loaded"] = riceName;
+  ristIni.save(ristIniPath);
+
+  return 0;
+}
+
+int destroyRice(string riceName) {
+  const char* homeDir = getenv("HOME");
+  fs::path dotConfig = fs::path(homeDir) / ".config";
+  fs::path ristConfigPath = fs::path(homeDir) / fs::path(".config/rist");
+  fs::path ricePath = dotConfig / fs::path("rist") / fs::path(riceName);
+
+  fs::path ristIniPath = ristConfigPath / "rist.ini";
+  ini::IniFile ristIni;
+  ristIni.load(ristIniPath);
+
+  bool found = false;
+  for (const auto &sectionPair: ristIni) {
+    if (sectionPair.first == riceName) {
+      found = true;
+    }
+  }
+  if (!found) {
+    cout << "no rice with name " << riceName << " was found" << endl;
+    return 1;
+  }
+
+  string loadedRice = ristIni["meta"]["loaded"].as<string>();
+  if (loadedRice == riceName) {
+    cout << "Cannot destroy curreently loaded rice." << endl;
+    return 1;
+  }
+
+  fs::path riceDir = ristIni[riceName]["path"].as<string>();
+  fs::remove_all(riceDir);
+
+  ristIni.erase(riceName);
+  ristIni.save(ristIniPath);
+
+  return 0;
+}
+
+int removeConfig(fs::path configFilePath) {
+  const char* homeDir = getenv("HOME");
+  fs::path dotConfig = fs::path(homeDir) / ".config";
+  fs::path ristConfigPath = fs::path(homeDir) / fs::path(".config/rist");
+  fs::path relConfigPath = removePathPrefix(configFilePath, dotConfig);
+
+  fs::path ristIniPath = ristConfigPath / "rist.ini";
+  ini::IniFile ristIni;
+  ristIni.load(ristIniPath);
+
+  string loadedRice = ristIni["meta"]["loaded"].as<string>();
+  fs::path ricePath = dotConfig / fs::path("rist") / fs::path(loadedRice);
+
+  if (loadedRice == "none") {
+    cout << "Create a rice and load it first";
+    return 1;
+  }
+
+  vector<string> configs = splitString(ristIni[loadedRice]["configs"].as<string>(), " ");
+
+  if (configs.empty()) {
+    cout << "there are no config files to remove" << endl;
+  }
+  for (int i = 0; i < configs.size(); i++) {
+    if (configs.at(i) == relConfigPath) {
+      configs.erase(configs.begin() + i);
+      return 0;
+    }
+  }
+
+  cout << "unable to find config " << configFilePath << endl;
+  return 1;
 }
 
 void help() {
@@ -62,26 +238,24 @@ void help() {
 
 int main(int argc, char* argv[]) {
   const char* homeDir = getenv("HOME");
-  fs::path configPath = fs::path(homeDir) / ".config" / "rist";
-  fs::path riceDataPath = fs::path(configPath) / "rist.ini";
+  fs::path configFilePath = fs::path(homeDir) / ".config" / "rist";
+  fs::path riceDataPath = fs::path(configFilePath) / "rist.ini";
 
-  if (!fs::exists(configPath)) {
-    cout << "Creating configuration path at " << configPath << endl;
-    fs::create_directory(configPath);
+  if (!fs::exists(configFilePath)) {
+    cout << "Creating configuration path at " << configFilePath << endl;
+    fs::create_directory(configFilePath);
   }
 
-  cout << "Displaying arguments: " << endl;
-  for (int i = 0; i < argc; i++) {
-    cout << argv[i] << endl;
-  }
   if (argc < 3) {
     help();
-    return 0;
+    return 1;
   }
 
   if (!fs::exists(riceDataPath)) {
     cout << "Creating rist.ini at " << riceDataPath << endl;
-    initFile(riceDataPath);
+    ini::IniFile riceData;
+    riceData["meta"]["loaded"] = "none";
+    riceData.save(riceDataPath);
   }
 
   ini::IniFile riceData;
@@ -92,26 +266,8 @@ int main(int argc, char* argv[]) {
       cout << "Incorrect usage" << endl;
       return 1;
     };
-
-    // check for duplicates
-    for (const auto sectionPair: riceData) {
-      const string &riceName = sectionPair.first;
-      if (argv[2] == riceName) {
-        cout << "ERROR: rice with name " << riceName << " already exists." << endl;
-        return 1;
-      }
-    }
-
-    fs::path riceDir = configPath / argv[2];
-    error_code ec;
-    if (!fs::create_directory(riceDir, ec)) {
-      cerr << "Failed to create rice directory: " << ec.message() << '\n';
-      return 1;
-    }
-
-    riceData[argv[2]]["path"] = string(riceDir);
-    riceData["meta"]["loaded"] = argv[2];
-    riceData.save(riceDataPath);
+ 
+    return createRice(argv[2]);
   }
 
   if (!strcmp(argv[1], "destroy")) {
@@ -120,17 +276,7 @@ int main(int argc, char* argv[]) {
       return 1;
     }
 
-    bool found = false;
-    for (const auto &sectionPair: riceData) {
-      if (sectionPair.first == argv[2]) {
-        found = true;
-      }
-    }
-    if (!found) {
-      cout << argv[2] << " not an existing rice." << endl;
-      return 1;
-    }
-    fs::remove_all(riceData[argv[2]]["path"]);
+    return destroyRice(argv[2]);
   }
 
   if (!strcmp(argv[1], "add")) {
@@ -139,69 +285,16 @@ int main(int argc, char* argv[]) {
       return 1;
     }
 
-    fs::path configFile = fs::path(argv[2]);
-    fs::path configRoot = fs::path(getenv("HOME")) / ".config";
-    fs::path relConfigFile = remove_prefix(configFile, configRoot);
-
-    cout << "Relative config file: " << relConfigFile << endl;
-
-    string loadedRice = riceData["meta"]["loaded"].as<string>();
-
-    if (loadedRice == "none") {
-      cout << "ERROR: create a rice and load it first." << endl;
-      return 1;
-    }
-
-    if (!riceData[loadedRice]["configs"].as<string>().empty()) {
-      riceData[loadedRice]["configs"] = riceData[loadedRice]["configs"].as<string>() + ("," + string(relConfigFile));
-    }
-    else {
-      riceData[loadedRice]["configs"] = riceData[loadedRice]["configs"].as<string>() + string(relConfigFile);
-    }
-
-    riceData.save(riceDataPath);
-
-    fs::path originalPath = fs::absolute(argv[2]);
-    fs::path relativePath = fs::relative(originalPath, configRoot);
-
-    fs::path riceDir = riceData[loadedRice]["path"].as<string>();
-    fs::path riceFile = riceDir / relativePath;
-
-    fs::create_directories(riceFile.parent_path());
-    fs::rename(originalPath, riceFile);
-    fs::create_symlink(riceFile, originalPath);
+    return addConfig(fs::path(argv[2]));
   }
 
   if (!strcmp(argv[1], "rm")) {
     if (argc != 3) {
-      cout << "Incorrect usage." << endl;
+      cerr << "Incorrect usage. Use: rist rm directory\n";
       return 1;
     }
-    fs::path configFile = fs::path(argv[2]);
-    string loadedRice = riceData["meta"]["loaded"].as<string>();
-    if (loadedRice != "none") {
-      vector<string> configs = parseString(riceData[loadedRice]["configs"].as<string>(), ",");
 
-      vector<string> remaining;
-      for (const auto& config : configs) {
-        if (config != argv[2]) {
-          remaining.push_back(config);
-        }
-      }
-
-      string configsParsed;
-      for (const auto& config : remaining) {
-        if (!configsParsed.empty()) {
-          configsParsed += ",";
-        }
-        configsParsed += config;
-      }
-
-      riceData[loadedRice]["configs"] = configsParsed;
-      riceData.save(riceDataPath);
-      fs::remove(originalPath);
-      fs::rename(riceFile, originalPath);
-    }
+    return removeConfig(argv[2]);
   }
 
   if (!strcmp(argv[1], "load")) {
@@ -209,26 +302,9 @@ int main(int argc, char* argv[]) {
       cout << "Incorrect usage." << endl;
       return 1;
     }
-    bool found = false;
-    for (const auto &sectionPair: riceData) {
-      if (sectionPair.first == argv[2]) {
-        found = true;
-      }
-    }
-    if (!found) {
-      cout << argv[2] << " not an existing rice." << endl;
-      return 1;
-    }
-
-    vector<string> paths = parseString(riceData[argv[2]]["configs"].as<string>(), ",");
-    fs::path loadRicePath = configPath / fs::path(argv[2]);
-    fs::path configDir = fs::path(homeDir) / fs::path(".config");
-
-    for (string p: paths) {
-      fs::path target = loadRicePath / fs::path(p);
-      fs::path link = configDir / fs::path(p);
-      fs::create_symlink(target, link);
-    }
+    return loadRice(argv[2]);
   }
+
+  help();
   return 0;
 }
