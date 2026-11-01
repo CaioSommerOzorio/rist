@@ -251,12 +251,14 @@ void help() {
   cout << "rist destroy riceName - removes target rice" << endl;
   cout << "rist add directory - adds a directory to selected rice" << endl;
   cout << "rist rm directory - removes a directory from selected rice" << endl;
+  cout << "rist name - lists the name of the current loaded rice" << endl;
+  cout << "rist rices - lists the available rices" << endl;
 }
 
 int main(int argc, char* argv[]) {
   const char* homeDir = getenv("HOME");
   fs::path configFilePath = fs::path(homeDir) / ".config" / "rist";
-  fs::path riceDataPath = fs::path(configFilePath) / "rist.ini";
+  fs::path ristDataPath = fs::path(configFilePath) / "rist.ini";
 
   if (!fs::exists(configFilePath)) {
     cout << "Creating configuration path at " << configFilePath << endl;
@@ -264,19 +266,32 @@ int main(int argc, char* argv[]) {
   }
 
   if (argc < 3) {
+    if (!strcmp(argv[1], "name")) {
+      ini::IniFile ristIni;
+      ristIni.load(ristDataPath);
+      cout << "Loaded rice: " << ristIni["meta"]["loaded"].as<string>() << endl;
+      return 0;
+    }
+    else if (!strcmp(argv[1], "rices")) {
+      ini::IniFile ristIni;
+      ristIni.load(ristDataPath);
+      for (const auto &sectionPair: ristIni) {
+        string riceName = sectionPair.first;
+        if (riceName != "meta") cout << riceName << endl;
+      }
+      return 0;
+    }
     help();
     return 1;
   }
 
-  if (!fs::exists(riceDataPath)) {
-    cout << "Creating rist.ini at " << riceDataPath << endl;
-    ini::IniFile riceData;
-    riceData["meta"]["loaded"] = "none";
-    riceData.save(riceDataPath);
+  if (!fs::exists(ristDataPath)) {
+    cout << "Creating rist.ini at " << ristDataPath << endl;
+    ini::IniFile ristIni;
+    ristIni["meta"]["loaded"] = "none";
+    ristIni.save(ristDataPath);
   }
 
-  ini::IniFile riceData;
-  riceData.load(riceDataPath);
 
   if (!strcmp(argv[1], "create")) {
     if (argc != 3) {
