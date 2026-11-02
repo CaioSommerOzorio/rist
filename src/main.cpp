@@ -332,16 +332,22 @@ int main(int argc, char *argv[]) {
 
   if (!strcmp(argv[1], "create")) {
     if (argc != 3) {
-      cout << "Incorrect usage" << endl;
+      cout << "Incorrect usage: please supply a rice name" << endl;
       return 1;
-    };
+    } else if (!strcmp(argv[3], "meta")) {
+      cout << "Incorrect usage: rice name cannot be meta" << endl;
+      return 1;
+    }
 
     return createRice(argv[2]);
   }
 
   if (!strcmp(argv[1], "destroy")) {
     if (argc != 3) {
-      cout << "Incorrect usage." << endl;
+      cout << "Incorrect usage: please supply a rice name to destroy" << endl;
+      return 1;
+    } else if (!strcmp(argv[3], "meta")) {
+      cout << "Incorrect usage: cannot detroy meta" << endl;
       return 1;
     }
 
@@ -350,7 +356,7 @@ int main(int argc, char *argv[]) {
 
   if (!strcmp(argv[1], "add")) {
     if (argc != 3) {
-      cout << "Incorrect usage." << endl;
+      cout << "Incorrect usage: please supply a config file" << endl;
       return 1;
     }
 
@@ -359,7 +365,7 @@ int main(int argc, char *argv[]) {
 
   if (!strcmp(argv[1], "rm")) {
     if (argc != 3) {
-      cerr << "Incorrect usage. Use: rist rm directory\n";
+      cerr << "Incorrect usage: please supply a directory to remove" << endl;
       return 1;
     }
 
@@ -368,7 +374,7 @@ int main(int argc, char *argv[]) {
 
   if (!strcmp(argv[1], "load")) {
     if (argc != 3) {
-      cout << "Incorrect usage." << endl;
+      cout << "Incorrect usage: please supply a rice to load" << endl;
       return 1;
     }
     return loadRice(argv[2]);
