@@ -106,9 +106,18 @@ int addConfig(fs::path configFilePath) {
   fs::path configFilePathInRist = ricePath / relConfigPath;
   fs::create_directories(configFilePathInRist.parent_path());
 
-  fs::rename(configFilePath, configFilePathInRist);
-  fs::create_symlink(configFilePathInRist, configFilePath);
+  fs::path realSource = fs::canonical(configFilePath);
 
+  fs::copy_file(realSource, configFilePathInRist);
+
+  if (fs::is_symlink(configFilePath)) {
+    fs::remove(configFilePath);
+  } else if (fs::exists(configFilePath)) {
+    cout << "Refusing to replace non-symlink: " << configFilePath << endl;
+    return 1;
+  }
+
+  fs::create_symlink(fs::absolute(configFilePathInRist), configFilePath);
   ristIni.save(ristIniPath);
 
   return 0;
@@ -151,7 +160,6 @@ int loadRice(string riceName) {
       cout << "Refusing to replace non-symlink: " << configFilePath << endl;
       return 1;
     }
-
     fs::create_symlink(configFilePathInRist, configFilePath);
   }
 
@@ -334,7 +342,7 @@ int main(int argc, char *argv[]) {
     if (argc != 3) {
       cout << "Incorrect usage: please supply a rice name" << endl;
       return 1;
-    } else if (!strcmp(argv[3], "meta")) {
+    } else if (!strcmp(argv[2], "meta")) {
       cout << "Incorrect usage: rice name cannot be meta" << endl;
       return 1;
     }
