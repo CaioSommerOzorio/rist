@@ -52,6 +52,10 @@ vector<string> splitString(string s, const string &delimiter) {
 
 int createRice(string riceName) {
   const char *homeDir = getenv("HOME");
+  if (!homeDir) {
+    cerr << "HOME environment variable not set" << endl;
+    return 1;
+  }
   fs::path dotConfig = fs::path(homeDir) / ".config";
   fs::path ristConfigPath = fs::path(homeDir) / fs::path(".config/rist");
   fs::path ricePath = dotConfig / fs::path("rist") / fs::path(riceName);
@@ -80,8 +84,13 @@ int createRice(string riceName) {
 
 int addConfig(fs::path configFilePath) {
   const char *homeDir = getenv("HOME");
+  if (!homeDir) {
+    cerr << "HOME environment variable not set" << endl;
+    return 1;
+  }
+
   fs::path dotConfig = fs::path(homeDir) / ".config";
-  fs::path ristConfigPath = fs::path(homeDir) / fs::path(".config/rist");
+  fs::path ristConfigPath = dotConfig / "rist";
   fs::path relConfigPath = removePathPrefix(configFilePath, dotConfig);
 
   fs::path ristIniPath = ristConfigPath / "rist.ini";
@@ -89,35 +98,49 @@ int addConfig(fs::path configFilePath) {
   ristIni.load(ristIniPath);
 
   string loadedRice = ristIni["meta"]["loaded"].as<string>();
-  fs::path ricePath = dotConfig / fs::path("rist") / fs::path(loadedRice);
 
   if (loadedRice == "none") {
-    cout << "Create a rice and load it first";
+    cout << "Create a rice and load it first" << endl;
     return 1;
   }
 
-  if (!ristIni[loadedRice]["configs"].as<string>().empty()) {
-    ristIni[loadedRice]["configs"] =
-        ristIni[loadedRice]["configs"].as<string>() + " ";
-  }
-  ristIni[loadedRice]["configs"] =
-      ristIni[loadedRice]["configs"].as<string>() + string(relConfigPath);
-
+  fs::path ricePath = ristConfigPath / loadedRice;
   fs::path configFilePathInRist = ricePath / relConfigPath;
-  fs::create_directories(configFilePathInRist.parent_path());
+
+  if (!fs::exists(configFilePath)) {
+    cerr << "Config file does not exist: " << configFilePath << endl;
+    return 1;
+  }
+
+  vector<string> configs =
+      splitString(ristIni[loadedRice]["configs"].as<string>(), " ");
+
+  string relativePath = relConfigPath.string();
+
+  if (find(configs.begin(), configs.end(), relativePath) != configs.end()) {
+    cerr << "Config already added: " << relativePath << endl;
+    return 1;
+  }
 
   fs::path realSource = fs::canonical(configFilePath);
+  fs::create_directories(configFilePathInRist.parent_path());
 
   fs::copy_file(realSource, configFilePathInRist);
 
-  if (fs::is_symlink(configFilePath)) {
+  if (fs::exists(configFilePath) || fs::is_symlink(configFilePath)) {
     fs::remove(configFilePath);
-  } else if (fs::exists(configFilePath)) {
-    cout << "Refusing to replace non-symlink: " << configFilePath << endl;
-    return 1;
   }
 
   fs::create_symlink(fs::absolute(configFilePathInRist), configFilePath);
+
+  if (!configs.empty()) {
+    ristIni[loadedRice]["configs"] =
+        ristIni[loadedRice]["configs"].as<string>() + " ";
+  }
+
+  ristIni[loadedRice]["configs"] =
+      ristIni[loadedRice]["configs"].as<string>() + relativePath;
+
   ristIni.save(ristIniPath);
 
   return 0;
@@ -125,6 +148,10 @@ int addConfig(fs::path configFilePath) {
 
 int loadRice(string riceName) {
   const char *homeDir = getenv("HOME");
+  if (!homeDir) {
+    cerr << "HOME environment variable not set" << endl;
+    return 1;
+  }
   fs::path dotConfig = fs::path(homeDir) / ".config";
   fs::path ristConfigPath = fs::path(homeDir) / fs::path(".config/rist");
   fs::path ricePath = dotConfig / fs::path("rist") / fs::path(riceName);
@@ -171,6 +198,10 @@ int loadRice(string riceName) {
 
 int destroyRice(string riceName) {
   const char *homeDir = getenv("HOME");
+  if (!homeDir) {
+    cerr << "HOME environment variable not set" << endl;
+    return 1;
+  }
   fs::path dotConfig = fs::path(homeDir) / ".config";
   fs::path ristConfigPath = fs::path(homeDir) / fs::path(".config/rist");
   fs::path ricePath = dotConfig / fs::path("rist") / fs::path(riceName);
@@ -207,6 +238,10 @@ int destroyRice(string riceName) {
 
 int removeConfig(fs::path configFilePath) {
   const char *homeDir = getenv("HOME");
+  if (!homeDir) {
+    cerr << "HOME environment variable not set" << endl;
+    return 1;
+  }
   fs::path dotConfig = fs::path(homeDir) / ".config";
   fs::path ristConfigPath = fs::path(homeDir) / fs::path(".config/rist");
   fs::path relConfigPath = removePathPrefix(configFilePath, dotConfig);
@@ -272,6 +307,10 @@ void help() {
 
 int main(int argc, char *argv[]) {
   const char *homeDir = getenv("HOME");
+  if (!homeDir) {
+    cerr << "HOME environment variable not set" << endl;
+    return 1;
+  }
   fs::path configFilePath = fs::path(homeDir) / ".config" / "rist";
   fs::path ristDataPath = fs::path(configFilePath) / "rist.ini";
 
