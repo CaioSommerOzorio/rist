@@ -52,10 +52,6 @@ vector<string> splitString(string s, const string &delimiter) {
 
 int createRice(string riceName) {
   const char *homeDir = getenv("HOME");
-  if (!homeDir) {
-    cerr << "HOME environment variable not set" << endl;
-    return 1;
-  }
   fs::path dotConfig = fs::path(homeDir) / ".config";
   fs::path ristConfigPath = fs::path(homeDir) / fs::path(".config/rist");
   fs::path ricePath = dotConfig / fs::path("rist") / fs::path(riceName);
@@ -84,11 +80,6 @@ int createRice(string riceName) {
 
 int addConfig(fs::path configFilePath) {
   const char *homeDir = getenv("HOME");
-  if (!homeDir) {
-    cerr << "HOME environment variable not set" << endl;
-    return 1;
-  }
-
   fs::path dotConfig = fs::path(homeDir) / ".config";
   fs::path ristConfigPath = dotConfig / "rist";
   fs::path relConfigPath = removePathPrefix(configFilePath, dotConfig);
@@ -148,10 +139,6 @@ int addConfig(fs::path configFilePath) {
 
 int loadRice(string riceName) {
   const char *homeDir = getenv("HOME");
-  if (!homeDir) {
-    cerr << "HOME environment variable not set" << endl;
-    return 1;
-  }
   fs::path dotConfig = fs::path(homeDir) / ".config";
   fs::path ristConfigPath = fs::path(homeDir) / fs::path(".config/rist");
   fs::path ricePath = dotConfig / fs::path("rist") / fs::path(riceName);
@@ -198,10 +185,6 @@ int loadRice(string riceName) {
 
 int destroyRice(string riceName) {
   const char *homeDir = getenv("HOME");
-  if (!homeDir) {
-    cerr << "HOME environment variable not set" << endl;
-    return 1;
-  }
   fs::path dotConfig = fs::path(homeDir) / ".config";
   fs::path ristConfigPath = fs::path(homeDir) / fs::path(".config/rist");
   fs::path ricePath = dotConfig / fs::path("rist") / fs::path(riceName);
@@ -238,10 +221,6 @@ int destroyRice(string riceName) {
 
 int removeConfig(fs::path configFilePath) {
   const char *homeDir = getenv("HOME");
-  if (!homeDir) {
-    cerr << "HOME environment variable not set" << endl;
-    return 1;
-  }
   fs::path dotConfig = fs::path(homeDir) / ".config";
   fs::path ristConfigPath = fs::path(homeDir) / fs::path(".config/rist");
   fs::path relConfigPath = removePathPrefix(configFilePath, dotConfig);
