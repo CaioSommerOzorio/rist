@@ -210,7 +210,7 @@ int destroyRice(string riceName) {
     return 1;
   }
 
-  fs::path riceDir = ristIni[riceName]["path"].as<string>();
+  fs::path riceDir = ristConfigPath / riceName;
   fs::remove_all(riceDir);
 
   ristIni.erase(riceName);
@@ -245,8 +245,7 @@ int removeConfig(fs::path configFilePath) {
     return 1;
   }
   for (int i = 0; i < configs.size(); i++) {
-    if (configs.at(i) == relConfigPath) {
-
+    if (configs.at(i) == relConfigPath.string()) {
       if (!fs::is_symlink(configFilePath)) {
         cout << "Path is not a symlink." << endl;
         return 1;
@@ -372,7 +371,7 @@ int main(int argc, char *argv[]) {
     if (argc != 3) {
       cout << "Incorrect usage: please supply a rice name to destroy" << endl;
       return 1;
-    } else if (!strcmp(argv[3], "meta")) {
+    } else if (!strcmp(argv[2], "meta")) {
       cout << "Incorrect usage: cannot detroy meta" << endl;
       return 1;
     }
@@ -386,7 +385,7 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    return addConfig(fs::path(argv[2]));
+    return addConfig(fs::absolute(fs::path(argv[2])));
   }
 
   if (!strcmp(argv[1], "rm")) {
@@ -395,7 +394,7 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    return removeConfig(argv[2]);
+    return removeConfig(fs::absolute(fs::path(argv[2])));
   }
 
   if (!strcmp(argv[1], "load")) {
