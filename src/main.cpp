@@ -170,11 +170,25 @@ int loadRice(string riceName) {
     }
     if (fs::is_symlink(configFilePath)) {
       fs::remove(configFilePath);
+      fs::create_symlink(configFilePathInRist, configFilePath);
     } else if (fs::exists(configFilePath)) {
-      cout << "Refusing to replace non-symlink: " << configFilePath << endl;
-      return 1;
+      string choice;
+      while (true) {
+        cout << "Would you like to replace non-symlink " << configFilePath
+             << "?" << endl
+             << "[y/n] ";
+        cin >> choice;
+        if ("y" == choice) {
+          fs::remove(configFilePath);
+          fs::create_symlink(configFilePathInRist, configFilePath);
+          break;
+        } else if ("n" == choice) {
+          break;
+        }
+      }
+    } else {
+      fs::create_symlink(configFilePathInRist, configFilePath);
     }
-    fs::create_symlink(configFilePathInRist, configFilePath);
   }
 
   ristIni["meta"]["loaded"] = riceName;
