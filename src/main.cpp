@@ -63,8 +63,7 @@ int createRice(string riceName) {
   for (const auto sectionPair : ristIni) {
     const string &configRice = sectionPair.first;
     if (riceName == configRice) {
-      cout << "ERROR: rice with name " << riceName << " already exists."
-           << endl;
+      cout << "rice with name " << riceName << " already exists." << endl;
       return 1;
     }
   }
@@ -73,8 +72,9 @@ int createRice(string riceName) {
 
   ristIni["meta"]["loaded"] = riceName;
   ristIni[riceName]["path"] = string(ricePath);
-
   ristIni.save(ristIniPath);
+
+  cout << "successfully saved " << ricePath << endl;
   return 0;
 }
 
@@ -91,7 +91,7 @@ int addConfig(fs::path configFilePath) {
   string loadedRice = ristIni["meta"]["loaded"].as<string>();
 
   if (loadedRice == "none") {
-    cout << "Create a rice and load it first" << endl;
+    cout << "create a rice and load it first" << endl;
     return 1;
   }
 
@@ -134,6 +134,7 @@ int addConfig(fs::path configFilePath) {
 
   ristIni.save(ristIniPath);
 
+  cout << "successfully added " << configFilePath << endl;
   return 0;
 }
 
@@ -165,7 +166,7 @@ int loadRice(string riceName) {
     fs::path configFilePath = dotConfig / p;
 
     if (!fs::exists(configFilePathInRist)) {
-      cout << "Missing file in rice: " << configFilePathInRist << endl;
+      cout << "missing file in rice: " << configFilePathInRist << endl;
       return 1;
     }
     if (fs::is_symlink(configFilePath)) {
@@ -174,7 +175,7 @@ int loadRice(string riceName) {
     } else if (fs::exists(configFilePath)) {
       string choice;
       while (true) {
-        cout << "Would you like to replace non-symlink " << configFilePath
+        cout << "would you like to replace non-symlink " << configFilePath
              << "?" << endl
              << "[y/n] ";
         cin >> choice;
@@ -194,6 +195,7 @@ int loadRice(string riceName) {
   ristIni["meta"]["loaded"] = riceName;
   ristIni.save(ristIniPath);
 
+  cout << "rice " << riceName << " loaded successfully" << endl;
   return 0;
 }
 
@@ -220,7 +222,7 @@ int destroyRice(string riceName) {
 
   string loadedRice = ristIni["meta"]["loaded"].as<string>();
   if (loadedRice == riceName) {
-    cout << "Cannot destroy curreently loaded rice." << endl;
+    cout << "cannot destroy currently loaded rice." << endl;
     return 1;
   }
 
@@ -230,6 +232,7 @@ int destroyRice(string riceName) {
   ristIni.erase(riceName);
   ristIni.save(ristIniPath);
 
+  cout << "rice" << riceName << " destroyed successfully" << endl;
   return 0;
 }
 
@@ -247,7 +250,7 @@ int removeConfig(fs::path configFilePath) {
   fs::path ricePath = dotConfig / fs::path("rist") / fs::path(loadedRice);
 
   if (loadedRice == "none") {
-    cout << "Create a rice and load it first";
+    cout << "create a rice and load it first";
     return 1;
   }
 
@@ -276,6 +279,8 @@ int removeConfig(fs::path configFilePath) {
       }
       ristIni[loadedRice]["configs"] = updatedConfigs;
       ristIni.save(ristIniPath);
+
+      cout << "config " << configFilePath << " deleted successfully" << endl;
       return 0;
     }
   }
@@ -307,7 +312,7 @@ int main(int argc, char *argv[]) {
   fs::path ristDataPath = fs::path(configFilePath) / "rist.ini";
 
   if (!fs::exists(configFilePath)) {
-    cout << "Creating configuration path at " << configFilePath << endl;
+    cout << "creating configuration path at " << configFilePath << endl;
     fs::create_directory(configFilePath);
   }
 
@@ -320,7 +325,7 @@ int main(int argc, char *argv[]) {
     if (!strcmp(argv[1], "name")) {
       ini::IniFile ristIni;
       ristIni.load(ristDataPath);
-      cout << "Loaded rice: " << ristIni["meta"]["loaded"].as<string>() << endl;
+      cout << "loaded rice: " << ristIni["meta"]["loaded"].as<string>() << endl;
       return 0;
     } else if (!strcmp(argv[1], "rices")) {
       ini::IniFile ristIni;
@@ -339,7 +344,7 @@ int main(int argc, char *argv[]) {
                           .as<string>(),
                       " ");
       if (configs.empty()) {
-        cout << "No configs loaded" << endl;
+        cout << "no configs loaded" << endl;
         return 0;
       }
       for (int i = 0; i < configs.size(); i++) {
@@ -356,14 +361,14 @@ int main(int argc, char *argv[]) {
       //}
       return 0;
     }
-    cout << "Command not recognised. Run rist help to print a help message of "
+    cout << "command not recognised. Run rist help to print a help message of "
             "available commands."
          << endl;
     return 1;
   }
 
   if (!fs::exists(ristDataPath)) {
-    cout << "Creating rist.ini at " << ristDataPath << endl;
+    cout << "creating rist.ini at " << ristDataPath << endl;
     ini::IniFile ristIni;
     ristIni["meta"]["loaded"] = "none";
     ristIni.save(ristDataPath);
@@ -371,10 +376,10 @@ int main(int argc, char *argv[]) {
 
   if (!strcmp(argv[1], "create")) {
     if (argc != 3) {
-      cout << "Incorrect usage: please supply a rice name" << endl;
+      cout << "incorrect usage: please supply a rice name" << endl;
       return 1;
     } else if (!strcmp(argv[2], "meta")) {
-      cout << "Incorrect usage: rice name cannot be meta" << endl;
+      cout << "incorrect usage: rice name cannot be meta" << endl;
       return 1;
     }
 
@@ -383,10 +388,10 @@ int main(int argc, char *argv[]) {
 
   if (!strcmp(argv[1], "destroy")) {
     if (argc != 3) {
-      cout << "Incorrect usage: please supply a rice name to destroy" << endl;
+      cout << "incorrect usage: please supply a rice name to destroy" << endl;
       return 1;
     } else if (!strcmp(argv[2], "meta")) {
-      cout << "Incorrect usage: cannot detroy meta" << endl;
+      cout << "incorrect usage: cannot detroy meta" << endl;
       return 1;
     }
 
@@ -395,7 +400,7 @@ int main(int argc, char *argv[]) {
 
   if (!strcmp(argv[1], "add")) {
     if (argc != 3) {
-      cout << "Incorrect usage: please supply a config file" << endl;
+      cout << "incorrect usage: please supply a config file" << endl;
       return 1;
     }
 
@@ -404,7 +409,7 @@ int main(int argc, char *argv[]) {
 
   if (!strcmp(argv[1], "rm")) {
     if (argc != 3) {
-      cerr << "Incorrect usage: please supply a directory to remove" << endl;
+      cerr << "incorrect usage: please supply a directory to remove" << endl;
       return 1;
     }
 
@@ -413,7 +418,7 @@ int main(int argc, char *argv[]) {
 
   if (!strcmp(argv[1], "load")) {
     if (argc != 3) {
-      cout << "Incorrect usage: please supply a rice to load" << endl;
+      cout << "incorrect usage: please supply a rice to load" << endl;
       return 1;
     }
     return loadRice(argv[2]);
